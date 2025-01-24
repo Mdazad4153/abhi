@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat with {{ username }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e88e5, #1565c0);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            flex: 1;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+
+        .chat-header {
+            background: #1e88e5;
+            color: white;
+            padding: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .chat-header-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .chat-header-subtitle {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .chat-header .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .chat-header .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #f5f5f5;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 16px;
+            position: relative;
+            animation: messageIn 0.3s ease;
+            word-break: break-word;
+        }
+
+        @keyframes messageIn {
+            from {
+                transform: translateY(10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .message.sent {
+            background: #1e88e5;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.received {
+            background: white;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .message .user-name {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 2px;
+        }
+
+        .message.sent .user-name {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .message.received .user-name {
+            color: #666;
+        }
+
+        .message .timestamp {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .message.sent .timestamp {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .message.received .timestamp {
+            color: #666;
+        }
+
+        .message-image-container {
+            position: relative;
+            margin-top: 8px;
+        }
+
+        .message-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .download-button {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .download-button:active {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .download-button i {
+            font-size: 18px;
+        }
+
+        .image-preview-container {
+            position: fixed;
+            bottom: 80px;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 16px;
+            display: none;
+            z-index: 100;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .image-preview-container .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .image-preview-container .preview-header .preview-title {
+            color: white;
+            font-size: 16px;
+        }
+
+        .image-preview-container .preview-close {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .image-preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .chat-input {
+            background: white;
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            border-top: 1px solid #eee;
+            position: sticky;
+            bottom: 0;
+        }
+
+        .image-upload {
+            cursor: pointer;
+            color: #1e88e5;
+            font-size: 24px;
+        }
+
+        .image-upload input[type="file"] {
+            display: none;
+        }
+
+        .image-upload-options {
+            position: fixed;
+            bottom: 80px;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            display: none;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+        }
+
+        .image-upload-options .option-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .image-upload-options button {
+            background: #1e88e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .image-upload-options button:active {
+            background: #1565c0;
+        }
+
+        .image-upload-options .close-options {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .chat-input input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 24px;
+            background: #f5f5f5;
+            font-size: 16px;
+        }
+
+        .chat-input input[type="text"]:focus {
+            outline: none;
+            background: #f0f0f0;
+        }
+
+        .chat-input button {
+            background: #1e88e5;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .chat-input button:active {
+            background: #1976d2;
+        }
+
+        .chat-input button i {
+            font-size: 18px;
+        }
+
+        /* Modal for full-size image view */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal img {
+            max-width: 90%;
+            max-height: 90vh;
+            object-fit: contain;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        /* iOS specific styles */
+        @supports (-webkit-touch-callout: none) {
+            body {
+                height: -webkit-fill-available;
+            }
+
+            .chat-input {
+                padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            }
+        }
+
+        /* Prevent zoom on input focus for iOS */
+        @media screen and (-webkit-min-device-pixel-ratio: 0) { 
+            select,
+            textarea,
+            input {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="chat-header-info">
+                <div class="chat-header-title">Chatting with {{ other_user.title() }}</div>
+                <div class="chat-header-subtitle">Logged in as {{ username.title() }}</div>
+            </div>
+            <a href="/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+        
+        <div class="chat-messages" id="messages">
+            {% for msg in chat_history %}
+            <div class="message {{ 'sent' if msg.user == username else 'received' }}">
+                <div class="user-name">{{ msg.user }}</div>
+                {% if msg.message %}
+                <div class="message-content">{{ msg.message }}</div>
+                {% endif %}
+                {% if msg.image %}
+                <div class="message-image-container">
+                    <img src="{{ msg.image }}" class="message-image" onclick="showImage('{{ msg.image }}')">
+                    <button class="download-button" onclick="event.stopPropagation(); downloadImage('{{ msg.image }}')">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+                {% endif %}
+                <div class="timestamp">{{ msg.timestamp }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="chat-input">
+            <i class="fas fa-image" onclick="showImageOptions()" style="cursor: pointer; color: #1e88e5; font-size: 24px;"></i>
+            <input type="text" 
+                   id="message" 
+                   placeholder="Type a message..." 
+                   autocomplete="off"
+                   autocapitalize="sentences">
+            <button onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Image Upload Options -->
+    <div class="image-upload-options" id="imageUploadOptions">
+        <button class="close-options" onclick="closeImageOptions()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="option-buttons">
+            <label>
+                <input type="file" id="galleryInput" accept="image/*" onchange="handleImageSelect(this)" style="display: none;">
+                <button onclick="document.getElementById('galleryInput').click()">
+                    <i class="fas fa-images"></i>
+                    Gallery
+                </button>
+            </label>
+            <label>
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleImageSelect(this)" style="display: none;">
+                <button onclick="document.getElementById('cameraInput').click()">
+                    <i class="fas fa-camera"></i>
+                    Camera
+                </button>
+            </label>
+        </div>
+    </div>
+
+    <!-- Image Preview Container -->
+    <div class="image-preview-container" id="previewContainer">
+        <div class="preview-header">
+            <div class="preview-title">Preview Image</div>
+            <button class="preview-close" onclick="closePreview()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <img id="image-preview" class="image-preview">
+    </div>
+
+    <!-- Modal for full-size image view -->
+    <div class="modal" id="imageModal">
+        <div class="modal-close" onclick="closeModal()">×</div>
+        <img id="modalImage" src="">
+        <button class="download-button" onclick="downloadModalImage()" style="position: fixed; bottom: 20px; right: 20px;">
+            <i class="fas fa-download"></i>
+        </button>
+    </div>
+
+    <script>
+        var socket = io();
+        var username = "{{ username }}";
+        var selectedImage = null;
+        var messagesDiv = document.getElementById('messages');
+
+        // Scroll to bottom when keyboard appears (iOS)
+        window.addEventListener('resize', function() {
+            if (document.activeElement.tagName === 'INPUT') {
+                setTimeout(function() {
+                    window.scrollTo(0, document.body.scrollHeight);
+                }, 100);
+            }
+        });
+
+        function addMessage(data) {
+            var messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (data.user === username ? 'sent' : 'received');
+            
+            var userDiv = document.createElement('div');
+            userDiv.className = 'user-name';
+            userDiv.textContent = data.user;
+            
+            var contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            if (data.message) {
+                contentDiv.textContent = data.message;
+            }
+
+            var timestampDiv = document.createElement('div');
+            timestampDiv.className = 'timestamp';
+            timestampDiv.textContent = data.timestamp;
+            
+            messageDiv.appendChild(userDiv);
+            messageDiv.appendChild(contentDiv);
+
+            if (data.image) {
+                var imageContainer = document.createElement('div');
+                imageContainer.className = 'message-image-container';
+
+                var img = document.createElement('img');
+                img.src = data.image;
+                img.className = 'message-image';
+                img.onclick = function() { showImage(data.image); };
+                
+                var downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-button';
+                downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+                downloadBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    downloadImage(data.image);
+                };
+
+                imageContainer.appendChild(img);
+                imageContainer.appendChild(downloadBtn);
+                messageDiv.appendChild(imageContainer);
+            }
+
+            messageDiv.appendChild(timestampDiv);
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function sendMessage() {
+            var messageInput = document.getElementById('message');
+            var message = messageInput.value.trim();
+            
+            if (message || selectedImage) {
+                var data = {
+                    message: message,
+                    image: selectedImage
+                };
+                
+                socket.emit('message', data);
+                messageInput.value = '';
+                
+                // Clear image preview and selected image
+                selectedImage = null;
+                document.getElementById('image-preview').style.display = 'none';
+                document.getElementById('previewContainer').style.display = 'none';
+                document.getElementById('galleryInput').value = '';
+                document.getElementById('cameraInput').value = '';
+                
+                // Focus back on input
+                messageInput.focus();
+            }
+        }
+
+        function showImageOptions() {
+            document.getElementById('imageUploadOptions').style.display = 'block';
+        }
+
+        function closeImageOptions() {
+            document.getElementById('imageUploadOptions').style.display = 'none';
+        }
+
+        function handleImageSelect(input) {
+            var file = input.files[0];
+            if (file) {
+                if (file.size > 5000000) { // 5MB limit
+                    alert('Image size should be less than 5MB');
+                    return;
+                }
+                
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedImage = e.target.result;
+                    var preview = document.getElementById('image-preview');
+                    var previewContainer = document.getElementById('previewContainer');
+                    preview.src = selectedImage;
+                    preview.style.display = 'block';
+                    previewContainer.style.display = 'block';
+                    closeImageOptions();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function closePreview() {
+            selectedImage = null;
+            document.getElementById('image-preview').style.display = 'none';
+            document.getElementById('previewContainer').style.display = 'none';
+            document.getElementById('galleryInput').value = '';
+            document.getElementById('cameraInput').value = '';
+        }
+
+        // Listen for enter key
+        document.getElementById('message').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Modal functions
+        function showImage(src) {
+            var modal = document.getElementById('imageModal');
+            var modalImg = document.getElementById('modalImage');
+            modal.style.display = 'flex';
+            modalImg.src = src;
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside the image
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        function downloadImage(imageUrl) {
+            var link = document.createElement('a');
+            link.href = imageUrl;
+            link.download = 'chat-image-' + new Date().getTime() + '.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function downloadModalImage() {
+            var modalImg = document.getElementById('modalImage');
+            downloadImage(modalImg.src);
+        }
+
+        socket.on('message', function(data) {
+            addMessage(data);
+        });
+
+        // Handle visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                scrollToBottom();
+            }
+        });
+    </script>
+</body>
+</html>

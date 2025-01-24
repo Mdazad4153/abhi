@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Chat with Friends - Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1e88e5, #1565c0);
+            padding: 20px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 360px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 24px;
+            border-radius: 24px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideIn 0.5s forwards;
+        }
+
+        @keyframes slideIn {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .login-header h2 {
+            color: #1e88e5;
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .user-selection {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .user-box {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 16px 12px;
+            border-radius: 16px;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .user-box:active {
+            transform: scale(0.95);
+        }
+
+        .user-box.selected {
+            border-color: #1e88e5;
+            background: #e3f2fd;
+        }
+
+        .user-box img {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-box .name {
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus {
+            border-color: #1e88e5;
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background: #1e88e5;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 6px rgba(30, 136, 229, 0.3);
+        }
+
+        .error-message {
+            color: #f44336;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* Add styles for flash messages */
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .flash-message {
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-weight: 500;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flash-message.success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .flash-message.error {
+            background: #f44336;
+            color: white;
+        }
+
+        .flash-message i {
+            font-size: 18px;
+        }
+
+        /* Mobile-specific animations */
+        @media (max-width: 768px) {
+            .login-container {
+                padding: 20px;
+            }
+
+            .user-box {
+                padding: 12px 8px;
+            }
+
+            .user-box img {
+                width: 40px;
+                height: 40px;
+            }
+
+            .form-group input,
+            button {
+                font-size: 16px;
+                padding: 14px;
+            }
+        }
+
+        /* Prevent zoom on input focus for iOS */
+        @media screen and (-webkit-min-device-pixel-ratio: 0) { 
+            select,
+            textarea,
+            input {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Flash Messages -->
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {% if category == 'success' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% else %}
+                            <i class="fas fa-exclamation-circle"></i>
+                        {% endif %}
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Chat with Friends</h1>
+            <p class="welcome-text">Choose your name to start chatting!</p>
+        </div>
+        
+        <form action="/login" method="POST" id="loginForm">
+            <div class="user-selection">
+                <div class="user-box" onclick="selectUser('abhi', this)" role="button" tabindex="0">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxZTg4ZTUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjAgMjF2LTJhNCA0IDAgMCAwLTQtNEg4YTQgNCAwIDAgMC00IDR2MiI+PC9wYXRoPjxjaXJjbGUgY3g9IjEyIiBjeT0iNyIgcj0iNCIgLz48L3N2Zz4=" alt="Abhi">
+                    <div class="name">Abhi</div>
+                </div>
+                <div class="user-box" onclick="selectUser('sanya', this)" role="button" tabindex="0">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxZTg4ZTUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjAgMjF2LTJhNCA0IDAgMCAwLTQtNEg4YTQgNCAwIDAgMC00IDR2MiI+PC9wYXRoPjxjaXJjbGUgY3g9IjEyIiBjeT0iNyIgcj0iNCIgLz48L3N2Zz4=" alt="Sanya">
+                    <div class="name">Sanya</div>
+                </div>
+            </div>
+
+            <input type="hidden" name="username" id="selectedUser">
+            
+            <div class="form-group">
+                <input type="password" 
+                       name="password" 
+                       id="password" 
+                       placeholder="Enter your password" 
+                       required
+                       autocomplete="current-password"
+                       pattern=".{6,}"
+                >
+                <div class="error-message" id="errorMessage">Invalid password. Please try again.</div>
+            </div>
+
+            <button type="submit">Continue to Chat</button>
+        </form>
+    </div>
+
+    <script>
+        function selectUser(username, element) {
+            // Remove selected class from all user boxes
+            document.querySelectorAll('.user-box').forEach(box => {
+                box.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked user box
+            element.classList.add('selected');
+            
+            // Set the selected username
+            document.getElementById('selectedUser').value = username;
+            
+            // Focus on password field
+            document.getElementById('password').focus();
+        }
+
+        // Add keyboard support for user boxes
+        document.querySelectorAll('.user-box').forEach(box => {
+            box.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+        });
+
+        // Form validation
+        document.getElementById('loginForm').onsubmit = function(e) {
+            const username = document.getElementById('selectedUser').value;
+            if (!username) {
+                e.preventDefault();
+                alert('Please select a user first');
+                return false;
+            }
+            return true;
+        };
+    </script>
+
+    <script>
+        // Auto-hide flash messages after 3 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                var flashMessages = document.querySelectorAll('.flash-message');
+                flashMessages.forEach(function(message) {
+                    message.style.opacity = '0';
+                    message.style.transform = 'translateX(100%)';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 500);
+                });
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

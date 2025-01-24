@@ -17,8 +17,8 @@ A real-time chat application built with Flask and Socket.IO that allows two user
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Mdazad4153/Nothing-.git
-cd Nothing-
+git clone https://github.com/Mdazad4153/abhi.git
+cd abhi
 ```
 
 2. Install dependencies:
